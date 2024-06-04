@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.6; //q is this the right solidity compiler version 
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -16,7 +16,7 @@ import {Base64} from "lib/base64/base64.sol";
 /// 4. Every X seconds, the raffle will be able to draw a winner and be minted a random puppy
 /// 5. The owner of the protocol will set a feeAddress to take a cut of the `value`, and the rest of the funds will be sent to the winner of the puppy.
 contract PuppyRaffle is ERC721, Ownable {
-    using Address for address payable;
+    using Address for address payable; // ?
 
     uint256 public immutable entranceFee;
 
@@ -78,7 +78,7 @@ contract PuppyRaffle is ERC721, Ownable {
     /// @param newPlayers the list of players to enter the raffle
     function enterRaffle(address[] memory newPlayers) public payable {
         require(msg.value == entranceFee * newPlayers.length, "PuppyRaffle: Must send enough to enter raffle");
-        for (uint256 i = 0; i < newPlayers.length; i++) {
+        for (uint256 i = 0; i < newPlayers.length; i++) { // @audit newPlayer.length -1 
             players.push(newPlayers[i]);
         }
 
@@ -98,7 +98,7 @@ contract PuppyRaffle is ERC721, Ownable {
         require(playerAddress == msg.sender, "PuppyRaffle: Only the player can refund");
         require(playerAddress != address(0), "PuppyRaffle: Player already refunded, or is not active");
 
-        payable(msg.sender).sendValue(entranceFee);
+        payable(msg.sender).sendValue(entranceFee); //q possible reentrancy attack
 
         players[playerIndex] = address(0);
         emit RaffleRefunded(playerAddress);
@@ -113,7 +113,7 @@ contract PuppyRaffle is ERC721, Ownable {
                 return i;
             }
         }
-        return 0;
+        return 0; //q returning zero is questionalble
     }
 
     /// @notice this function will select a winner and mint a puppy
@@ -125,8 +125,7 @@ contract PuppyRaffle is ERC721, Ownable {
     function selectWinner() external {
         require(block.timestamp >= raffleStartTime + raffleDuration, "PuppyRaffle: Raffle not over");
         require(players.length >= 4, "PuppyRaffle: Need at least 4 players");
-        uint256 winnerIndex =
-            uint256(keccak256(abi.encodePacked(msg.sender, block.timestamp, block.difficulty))) % players.length;
+        uint256 winnerIndex = uint256(keccak256(abi.encodePacked(msg.sender, block.timestamp, block.difficulty))) % players.length;
         address winner = players[winnerIndex];
         uint256 totalAmountCollected = players.length * entranceFee;
         uint256 prizePool = (totalAmountCollected * 80) / 100;
